@@ -39,7 +39,7 @@ die(const char *errstr, ...) {
 
 #ifndef HAVE_BSD_AUTH
 static const char *
-get_password() { /* only run as root */
+get_password(char *username) { /* only run as root */
     const char *rval;
     struct passwd *pw;
 
@@ -52,7 +52,7 @@ get_password() { /* only run as root */
 #if HAVE_SHADOW_H
     {
         struct spwd *sp;
-        sp = getspnam(getenv("USER"));
+        sp = getspnam(username);
         endspent();
         rval = sp->sp_pwdp;
     }
@@ -91,7 +91,7 @@ main(int argc, char **argv) {
     // defaults
     char* passchar = "*";
     char* fontname = "-*-dejavu sans-bold-r-*-*-*-420-100-100-*-*-iso8859-1";
-    char* username = ""; 
+    char* username = "root"; 
     int showline = 1;
 
     for (int i = 0; i < argc; i++) {
@@ -106,6 +106,12 @@ main(int argc, char **argv) {
                     fontname = argv[i + 1];
                 else
                     die("error: font not specified.\n");
+        }else
+	    if (!strcmp(argv[i], "-u")) {
+                if (i + 1 < argc) 
+                    username = argv[i + 1];
+                else
+                    die("error: username not specified.\n");
             }
             else
                 if (!strcmp(argv[i], "-v")) 
@@ -115,7 +121,7 @@ main(int argc, char **argv) {
                         showline = 0;
                     else 
                         if (!strcmp(argv[i], "?")) 
-                            die("usage: sflock [-v] [-c passchars] [-f fontname]\n");
+                            die("usage: sflock [-v] [-c passchars] [-f fontname] [-u username]\n");
     }
 
     // fill with password characters
@@ -141,8 +147,7 @@ main(int argc, char **argv) {
         exit(0); // exit parent 
 
 #ifndef HAVE_BSD_AUTH
-    pws = get_password();
-    username = getpwuid(geteuid())->pw_name;
+    pws = get_password(username);
 #else
     username = getlogin();
 #endif
